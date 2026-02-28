@@ -240,6 +240,18 @@ For `bun`, `deno` and `pnpm`, they are disabled by default.
 >
 > `npm ci --omit=dev --ignore-scripts`
 
+#### Restrict Git Dependencies
+
+> Git dependencies (direct or transitive) can include a `.npmrc` file that overrides the path to the `git` executable. This can enable unexpected code execution during install, even with `--ignore-scripts`, because the execution occurs at the toolchain level rather than through lifecycle hooks.
+
+Since npm CLI [v11.9.0](https://github.com/npm/cli/releases/tag/v11.9.0), the `--allow-git` flag provides explicit control over this behavior:
+
+```sh
+npm install --allow-git=none
+```
+
+The flag currently defaults to `all` for backward compatibility, but `none` is expected to become the default in npm CLI v12.
+
 ### 4. Preinstall Preventions
 
 > How do we know and trust that whenever we do `npm install <package-name>`, everything will be fine? We shouldn't. Here's how we can ensure that the `install` command is safer to run:
@@ -305,7 +317,11 @@ pnpm config set minimumReleaseAge <minutes>
 yarn config set npmMinimalAgeGate <minutes>
 ```
 
-For `npm`, there is [a proposal](https://github.com/npm/cli/issues/8570) to add `minimumReleaseAge` option and `minimumReleaseAgeExclude` option.
+For `npm`, the [`min-release-age`](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) option is supported since [v11.10.0](https://github.com/npm/cli/releases/tag/v11.10.0). An exclusion mechanism is not yet available — see [this open issue](https://github.com/npm/cli/issues/8994) for discussion.
+
+```sh
+npm config set min-release-age=86400 # seconds (24 hours)
+```
 
 For `bun`, the `minimumReleaseAge` and `minimumReleaseAgeExcludes` options are supported since [`v1.3`](https://bun.com/docs/cli/install#minimum-release-age).
 
@@ -491,6 +507,8 @@ To publish without evoking the `npm publish` command, we can do one of the follo
 When using OpenID Connect (OIDC) auth, one can publish packages _without_ npm tokens, and get _automatic_ provenance. This is called **trusted publishing** and read the GitHub announcement here: <https://github.blog/changelog/2025-07-31-npm-trusted-publishing-with-oidc-is-generally-available/>
 
 See <https://docs.npmjs.com/trusted-publishers> for instructions on how to configure trusted publishing.
+
+Since npm CLI [v11.10.0](https://github.com/npm/cli/releases/tag/v11.10.0), the [`npm trust`](https://docs.npmjs.com/cli/v11/commands/npm-trust) command allows bulk configuration of trusted publishing across multiple packages in a single operation, reducing migration overhead for maintainers with large portfolios.
 
 Related tools:
 
