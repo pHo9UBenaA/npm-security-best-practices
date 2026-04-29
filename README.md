@@ -111,6 +111,7 @@ provenance=true
 ```
 
 And other configuration files examples are here:
+
 - [`bunfig.toml`](bunfig.toml)
 - [`pnpm-workspace.yaml`](pnpm-workspace.yaml)
 - [`deno.json`](deno.json)
@@ -612,6 +613,10 @@ Here are some private registries that you might find useful:
   - [vlt’s Serverless Registry](https://docs.vlt.sh/registry) (VSR) can be deployed to Cloudflare Workers in minutes.
 - JFrog Artifactory <https://jfrog.com/integrations/npm-registry>
 - Sonatype: <https://help.sonatype.com/en/npm-registry.html>
+- Cloudsmith: <https://cloudsmith.com/>
+
+> [!IMPORTANT]
+> Private registries have the advantages of separating the supply chain from the public registry, and enforce custom security policies. But they also have the disadvantages of being more complex to setup and maintain, and can be more expensive (cost of storage and bandwidth) to use.
 
 > [!TIP]
 > **No Registry?** If the usage of a public registry like `npm` is a real concern, it is also possible to build and import the library yourself as long as you have access to the source code. See <https://boda.sh/blog/pnpm-workspace-git-submodules/> for adding packages without `npm` but with `pnpm workspace` and `git submodules`.
