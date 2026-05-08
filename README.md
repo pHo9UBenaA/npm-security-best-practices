@@ -54,6 +54,10 @@
 >
 > Keep up to update from trusted newsfeed[^20][^21][^22][^23]. My personal choice is <https://socket.dev/blog>. Confirm with vulnerability databases like <https://security.snyk.io> or <https://socket.dev/search?e=npm>
 >
+> **Preserve evidence before cleanup**
+>
+> Before deleting caches or `node_modules`, preserve CI logs, package manager logs, lockfiles, `package.json`, npm token audit history, and a timestamped list of installed packages. This helps later root-cause analysis, credential-impact review, and any coordinated disclosure or insurance reporting.
+>
 > **Remove and replace compromised packages**
 >
 > ```sh
