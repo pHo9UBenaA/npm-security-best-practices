@@ -260,7 +260,7 @@ For `deno`, we can also set the following in a `deno.json` file:
 npm config set ignore-scripts true --global
 
 # since yarn v4.14, enableScripts defaults to false
-yarn config set enableScripts false
+yarn config set enableScripts false --home
 ```
 
 For `bun`, `deno` and `pnpm`, they are disabled by default.
