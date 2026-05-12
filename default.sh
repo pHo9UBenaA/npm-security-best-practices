@@ -393,6 +393,69 @@ run_npm() {
     "npm min-release-age unsupported; unchanged"
 }
 
+print_pnpm_path_error() {
+  local output="$1"
+
+  if [[ -t 2 ]]; then
+    printf '%b%s%b\n' "$Red" "$output" "$Color_Off" >&2
+  else
+    printf '%s\n' "$output" >&2
+  fi
+  error "pnpm global bin directory is not in PATH; run 'pnpm setup' and re-run this script"
+}
+
+is_pnpm_path_error() {
+  local output="$1"
+
+  [[ "$output" == *"is not in PATH"* ]] && [[ "$output" == *"pnpm setup"* ]]
+}
+
+apply_pnpm_global_setting() {
+  local key="$1"
+  local value="$2"
+  local output
+
+  if output="$(pnpm config set "$key" "$value" --global 2>&1)"; then
+    info "pnpm $key=$value"
+    did_apply=true
+    return 0
+  fi
+
+  if is_pnpm_path_error "$output"; then
+    pnpm_setup_required=true
+    print_pnpm_path_error "$output"
+    had_failure=true
+    return 0
+  fi
+
+  error "failed to set pnpm $key=$value"
+  had_failure=true
+  return 0
+}
+
+probe_pnpm_global_setting() {
+  local key="$1"
+  local value="$2"
+  local skip_message="$3"
+  local output
+
+  if output="$(pnpm config set "$key" "$value" --global 2>&1)"; then
+    info "pnpm $key=$value"
+    did_apply=true
+    return 0
+  fi
+
+  if is_pnpm_path_error "$output"; then
+    pnpm_setup_required=true
+    print_pnpm_path_error "$output"
+    had_failure=true
+    return 0
+  fi
+
+  skip "$skip_message"
+  return 0
+}
+
 run_pnpm() {
   local min_release_age_minutes
 
@@ -401,11 +464,14 @@ run_pnpm() {
     return
   fi
 
-  apply_global_setting "pnpm" "save-exact" "true"
+  apply_pnpm_global_setting "save-exact" "true"
+  if [[ $pnpm_setup_required == true ]]; then
+    return
+  fi
+
   ensure_min_release_age_days
   min_release_age_minutes="$(days_to_minutes "$min_release_age_days")"
-  probe_global_setting \
-    "pnpm" \
+  probe_pnpm_global_setting \
     "minimumReleaseAge" \
     "$min_release_age_minutes" \
     "pnpm minimumReleaseAge unsupported; unchanged"
@@ -456,6 +522,7 @@ esac
 did_apply=false
 had_failure=false
 needs_manual_action=false
+pnpm_setup_required=false
 min_release_age_days=""
 
 confirm_continue

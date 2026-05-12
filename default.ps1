@@ -10,6 +10,7 @@ $DEFAULT_MIN_RELEASE_AGE_SECONDS = $DEFAULT_MIN_RELEASE_AGE_DAYS * $SECONDS_PER_
 $script:didApply = $false
 $script:hadFailure = $false
 $script:needsManualAction = $false
+$script:pnpmSetupRequired = $false
 $script:minReleaseAgeDays = $null
 
 function Write-Stderr {
@@ -508,21 +509,92 @@ function Invoke-NpmDefaults {
         -SkipMessage 'npm min-release-age unsupported; unchanged')
 }
 
+function Test-PnpmPathError {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Output
+    )
+
+    return ($Output -match 'is not in PATH') -and ($Output -match 'pnpm setup')
+}
+
+function Write-PnpmPathError {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Output
+    )
+
+    Write-Stderr $Output.TrimEnd()
+    Write-ErrorMessage "pnpm global bin directory is not in PATH; run 'pnpm setup' and re-run this script"
+}
+
+function Invoke-PnpmGlobalSet {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Value,
+
+        [string]$SkipMessage,
+
+        [switch]$AllowSkip
+    )
+
+    $global:LASTEXITCODE = 0
+    $output = ''
+    $success = $false
+
+    try {
+        $output = (& 'pnpm' 'config' 'set' $Key $Value '--global' 2>&1 | Out-String)
+        $success = $LASTEXITCODE -eq 0
+    } catch {
+        $output = "$($_.Exception.Message)"
+        $success = $false
+    }
+
+    if ($success) {
+        Write-Info "pnpm $Key=$Value"
+        $script:didApply = $true
+        return
+    }
+
+    if (Test-PnpmPathError -Output $output) {
+        $script:pnpmSetupRequired = $true
+        Write-PnpmPathError -Output $output
+        $script:hadFailure = $true
+        return
+    }
+
+    if ($AllowSkip) {
+        Skip-Message $SkipMessage
+        return
+    }
+
+    Write-ErrorMessage "failed to set pnpm $Key=$Value"
+    $script:hadFailure = $true
+}
+
 function Invoke-PnpmDefaults {
     if (-not (Test-CommandAvailable -Name 'pnpm')) {
         Skip-Message 'pnpm not installed'
         return
     }
 
-    Apply-GlobalSetting -Manager 'pnpm' -Key 'save-exact' -Value 'true'
+    Invoke-PnpmGlobalSet -Key 'save-exact' -Value 'true'
+    if ($script:pnpmSetupRequired) {
+        return
+    }
 
     Ensure-MinReleaseAgeDays
     $minReleaseAgeMinutes = Convert-DaysToMinutes -Days $script:minReleaseAgeDays
-    [void](Probe-GlobalSetting `
-        -Manager 'pnpm' `
+    Invoke-PnpmGlobalSet `
         -Key 'minimumReleaseAge' `
         -Value $minReleaseAgeMinutes.ToString() `
-        -SkipMessage 'pnpm minimumReleaseAge unsupported; unchanged')
+        -SkipMessage 'pnpm minimumReleaseAge unsupported; unchanged' `
+        -AllowSkip
 }
 
 function Invoke-YarnDefaults {
