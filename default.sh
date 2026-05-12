@@ -37,7 +37,7 @@ This script sets global package-manager defaults for npm, pnpm, yarn, and bun:
   - Yarn:
     - If global home config is supported, applies Yarn Berry settings: enableScripts=false, defaultSemverRangePrefix="", and npmPublishProvenance=true.
     - Otherwise, falls back to Yarn Classic settings: ignore-scripts=true and save-prefix="".
-    - For Yarn Berry, also tries npmMinimalAgeGate=<minutes> and leaves it unchanged if unsupported.
+    - For Yarn Berry, also tries npmMinimalAgeGate=<minutes>; requires yarn >= 4.10, older versions skip this setting with a warning.
   
   - Bun: creates ~/.bunfig.toml when missing; if an existing ~/.bunfig.toml is missing exact=true or minimumReleaseAge=<seconds>, prints a manual update snippet.
   
@@ -344,6 +344,30 @@ run_yarn_classic() {
   apply_yarn_global_setting "save-prefix" ""
 }
 
+yarn_supports_min_age_gate() {
+  local version="$1"
+  local major minor rest
+
+  [[ -n "$version" ]] || return 1
+
+  major="${version%%.*}"
+  rest="${version#*.}"
+  minor="${rest%%.*}"
+
+  [[ "$major" =~ ^[0-9]+$ ]] || return 1
+  [[ "$minor" =~ ^[0-9]+$ ]] || return 1
+
+  if (( major > 4 )); then
+    return 0
+  fi
+
+  if (( major == 4 && minor >= 10 )); then
+    return 0
+  fi
+
+  return 1
+}
+
 get_npm_major_version() {
   local version_output
   local major
@@ -479,6 +503,7 @@ run_pnpm() {
 
 run_yarn() {
   local min_release_age_minutes
+  local yarn_version
 
   if ! command -v yarn >/dev/null 2>&1; then
     skip "yarn not installed"
@@ -491,6 +516,18 @@ run_yarn() {
     "yarn home-scoped config unsupported; falling back to Yarn Classic"; then
     apply_yarn_home_setting "defaultSemverRangePrefix" ""
     apply_yarn_home_setting "npmPublishProvenance" "true"
+
+    yarn_version="$(yarn --version 2>/dev/null || true)"
+    if [[ -z "$yarn_version" ]]; then
+      warn "could not detect yarn version; npmMinimalAgeGate requires yarn >= 4.10; skipping"
+      return
+    fi
+
+    if ! yarn_supports_min_age_gate "$yarn_version"; then
+      warn "yarn $yarn_version detected; npmMinimalAgeGate requires yarn >= 4.10; skipping. Upgrade with: yarn set version stable"
+      return
+    fi
+
     ensure_min_release_age_days
     min_release_age_minutes="$(days_to_minutes "$min_release_age_days")"
     probe_yarn_home_setting \

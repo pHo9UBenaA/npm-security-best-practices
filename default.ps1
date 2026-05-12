@@ -53,7 +53,7 @@ function Show-Usage {
         '  - Yarn:'
         '    - If global home config is supported, applies Yarn Berry settings: enableScripts=false, defaultSemverRangePrefix="", and npmPublishProvenance=true.'
         '    - Otherwise, falls back to Yarn Classic settings: ignore-scripts=true and save-prefix="".'
-        '    - For Yarn Berry, also tries npmMinimalAgeGate=<minutes> and leaves it unchanged if unsupported.'
+        '    - For Yarn Berry, also tries npmMinimalAgeGate=<minutes>; requires yarn >= 4.10, older versions skip this setting with a warning.'
         ''
         '  - Bun: creates ~/.bunfig.toml when missing; if an existing ~/.bunfig.toml is missing exact=true or minimumReleaseAge=<seconds>, prints a manual update snippet.'
         ''
@@ -455,6 +455,62 @@ function Invoke-YarnClassic {
     Apply-YarnGlobalSetting -Key 'save-prefix' -Value ''
 }
 
+function Get-YarnVersionInfo {
+    try {
+        $versionOutput = (& yarn --version 2>$null | Select-Object -First 1)
+    } catch {
+        return $null
+    }
+
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($versionOutput)) {
+        return $null
+    }
+
+    $versionString = $versionOutput.Trim()
+    $parts = $versionString.Split('.')
+
+    if ($parts.Length -lt 2) {
+        return $null
+    }
+
+    $major = 0
+    $minor = 0
+    if (-not [int]::TryParse($parts[0], [ref]$major)) {
+        return $null
+    }
+    if (-not [int]::TryParse($parts[1], [ref]$minor)) {
+        return $null
+    }
+
+    return [PSCustomObject]@{
+        Version = $versionString
+        Major   = $major
+        Minor   = $minor
+    }
+}
+
+function Test-YarnSupportsMinAgeGate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowNull()]
+        $VersionInfo
+    )
+
+    if ($null -eq $VersionInfo) {
+        return $false
+    }
+
+    if ($VersionInfo.Major -gt 4) {
+        return $true
+    }
+
+    if ($VersionInfo.Major -eq 4 -and $VersionInfo.Minor -ge 10) {
+        return $true
+    }
+
+    return $false
+}
+
 function Get-NpmVersionInfo {
     try {
         $versionOutput = (& npm --version 2>$null | Select-Object -First 1)
@@ -609,6 +665,17 @@ function Invoke-YarnDefaults {
         -SkipMessage 'yarn home-scoped config unsupported; falling back to Yarn Classic') {
         Apply-YarnHomeSetting -Key 'defaultSemverRangePrefix' -Value ''
         Apply-YarnHomeSetting -Key 'npmPublishProvenance' -Value 'true'
+
+        $yarnVersionInfo = Get-YarnVersionInfo
+        if ($null -eq $yarnVersionInfo) {
+            Write-WarnMessage 'could not detect yarn version; npmMinimalAgeGate requires yarn >= 4.10; skipping'
+            return
+        }
+
+        if (-not (Test-YarnSupportsMinAgeGate -VersionInfo $yarnVersionInfo)) {
+            Write-WarnMessage "yarn $($yarnVersionInfo.Version) detected; npmMinimalAgeGate requires yarn >= 4.10; skipping. Upgrade with: yarn set version stable"
+            return
+        }
 
         Ensure-MinReleaseAgeDays
         $minReleaseAgeMinutes = Convert-DaysToMinutes -Days $script:minReleaseAgeDays
