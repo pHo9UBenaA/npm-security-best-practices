@@ -97,6 +97,7 @@ Pick the best practices below based on your needs to strengthen your system agai
 
 | Project | Weekly Downloads | Date of Compromise | Links |
 | --- | --- | --- | --- |
+| `@tanstack/*` | ~ | 2026-05-11 | [TanStack Blog](https://tanstack.com/blog/npm-supply-chain-compromise-postmortem) |
 | `axios` | 100M | 2026-03-31 | [Socket](https://socket.dev/blog/axios-npm-package-compromised), [StepSecurity](https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan), [HN](https://news.ycombinator.com/item?id=47582220) |
 
 ## For Developers
@@ -121,11 +122,14 @@ And other configuration files examples are here:
 - [`deno.json`](deno.json)
 - [`.yarnrc.yml`](.yarnrc.yml)
 
-But there's also a helper script [`default.sh`](default.sh) that setup few global defaults across package managers to make your system safer:
+But there's also a helper script [`default.sh`](default.sh) that setup few global defaults across package managers to make your system safer
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/bodadotsh/npm-security-best-practices/refs/heads/main/default.sh | bash
 ```
+
+> I'm aware of the irony a security best practice repo asks you to `curl | sh` a remote script 😅 this is for those who'll read
+> the source code and want to have this process automated. The rest, this README acts as a reference to manually configure as you like.
 
 Afterwards, you can run the following commands to check the package manager's global configs:
 
