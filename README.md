@@ -338,6 +338,7 @@ npm config set min-release-age=7 --global
 
 bun add <package> --minimum-release-age <seconds>
 
+# since pnpm v11, minimumReleaseAge defaults to 1440 (1 day)
 pnpm config set minimumReleaseAge <minutes> --global
 
 yarn config set -H npmMinimalAgeGate '7d'
@@ -653,7 +654,7 @@ yarn npm audit --recursive # audit transitive dependencies
 ```
 
 > [!TIP]
-> There is a `npm sbom` command (<https://docs.npmjs.com/cli/v11/commands/npm-sbom>) that output SBOM which is often required for security auditing. See related [`pnpm` SBOM discussion](https://github.com/pnpm/pnpm/issues/9088).
+> The `npm sbom` command (<https://docs.npmjs.com/cli/v11/commands/npm-sbom>) outputs SBOM which is often required for security auditing. Since pnpm v11+, there is a [`pnpm sbom`](https://pnpm.io/cli/sbom) command too.
 
 #### GitHub
 
