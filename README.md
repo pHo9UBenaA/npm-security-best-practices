@@ -257,10 +257,10 @@ For `deno`, we can also set the following in a `deno.json` file:
 > Lifecycle scripts are special scripts that happen in addition to the `pre<event>`, `post<event>`, and `<event>` scripts. For instance, `preinstall` is run before `install` is run and `postinstall` is run after `install` is run. See how npm handles the "scripts" field: <https://docs.npmjs.com/cli/v11/using-npm/scripts#life-cycle-scripts>. Lifecycle scripts are a common strategy from malicious actors. For example, the "Shai-Hulud" worms[^3] edit the `package.json` file to add a `postinstall` script that would then steal credentials.
 
 ```sh
-npm config set ignore-scripts true --global
+npm config set --global ignore-scripts true
 
 # since yarn v4.14, enableScripts defaults to false
-yarn config set enableScripts false --home
+yarn config set --home enableScripts false
 ```
 
 For `bun`, `deno` and `pnpm`, they are disabled by default.
@@ -334,14 +334,14 @@ scanner = "@socketsecurity/bun-security-scanner"
 
 ```sh
 # since npm v11.10.0
-npm config set min-release-age=7 --global
+npm config set --global min-release-age=7 
 
 bun add <package> --minimum-release-age <seconds>
 
 # since pnpm v11, minimumReleaseAge defaults to 1440 (1 day)
-pnpm config set minimumReleaseAge <minutes> --global
+pnpm config set --global minimumReleaseAge <minutes>
 
-yarn config set -H npmMinimalAgeGate '7d'
+yarn config set --home npmMinimalAgeGate '7d'
 
 deno install --minimum-dependency-age=P7D
 ```
