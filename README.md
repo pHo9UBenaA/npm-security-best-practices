@@ -254,12 +254,12 @@ For `deno`, we can also set the following in a `deno.json` file:
 
 ### 3. Disable Lifecycle Scripts
 
-> Lifecycle scripts are special scripts that happen in addition to the `pre<event>`, `post<event>`, and `<event>` scripts. For instance, `preinstall` is run before `install` is run and `postinstall` is run after `install` is run. See how npm handles the "scripts" field: <https://docs.npmjs.com/cli/v11/using-npm/scripts#life-cycle-scripts>
->
-> Lifecycle scripts are a common strategy from malicious actors. For example, the "Shai-Hulud" worms[^3] edit the `package.json` file to add a `postinstall` script that would then steal credentials.
+> Lifecycle scripts are special scripts that happen in addition to the `pre<event>`, `post<event>`, and `<event>` scripts. For instance, `preinstall` is run before `install` is run and `postinstall` is run after `install` is run. See how npm handles the "scripts" field: <https://docs.npmjs.com/cli/v11/using-npm/scripts#life-cycle-scripts>. Lifecycle scripts are a common strategy from malicious actors. For example, the "Shai-Hulud" worms[^3] edit the `package.json` file to add a `postinstall` script that would then steal credentials.
 
 ```sh
 npm config set ignore-scripts true --global
+
+# since yarn v4.14, enableScripts defaults to false
 yarn config set enableScripts false
 ```
 
