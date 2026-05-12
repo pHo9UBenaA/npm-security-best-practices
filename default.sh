@@ -29,7 +29,7 @@ print_usage() {
 This script sets global package-manager defaults for npm, pnpm, yarn, and bun:
 
   - npm: sets ignore-scripts=true, save-exact=true, and provenance=true globally.
-  - npm: tries min-release-age=<days> globally and leaves it unchanged if unsupported.
+  - npm: requires npm >= 11 for min-release-age; older versions skip this setting with a warning.
 
   - pnpm: sets save-exact=true globally.
   - pnpm: tries minimumReleaseAge=<minutes> globally and leaves it unchanged if unsupported.
@@ -344,7 +344,27 @@ run_yarn_classic() {
   apply_yarn_global_setting "save-prefix" ""
 }
 
+get_npm_major_version() {
+  local version_output
+  local major
+
+  if ! version_output="$(npm --version 2>/dev/null)"; then
+    printf '%s\n' ""
+    return 1
+  fi
+
+  major="${version_output%%.*}"
+  if [[ ! "$major" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' ""
+    return 1
+  fi
+
+  printf '%s\n' "$major"
+}
+
 run_npm() {
+  local npm_major
+
   if ! command -v npm >/dev/null 2>&1; then
     skip "npm not installed"
     return
@@ -353,6 +373,18 @@ run_npm() {
   apply_global_setting "npm" "ignore-scripts" "true"
   apply_global_setting "npm" "save-exact" "true"
   apply_global_setting "npm" "provenance" "true"
+
+  npm_major="$(get_npm_major_version || true)"
+  if [[ -z "$npm_major" ]]; then
+    warn "could not detect npm version; min-release-age requires npm >= 11; skipping"
+    return
+  fi
+
+  if (( npm_major < 11 )); then
+    warn "npm $(npm --version 2>/dev/null) detected; min-release-age requires npm >= 11; skipping. Upgrade with: npm install -g npm@latest"
+    return
+  fi
+
   ensure_min_release_age_days
   probe_global_setting \
     "npm" \

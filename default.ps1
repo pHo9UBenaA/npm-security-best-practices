@@ -44,7 +44,7 @@ function Show-Usage {
         'This script sets global package-manager defaults for npm, pnpm, yarn, and bun:'
         ''
         '  - npm: sets ignore-scripts=true, save-exact=true, and provenance=true globally.'
-        '  - npm: tries min-release-age=<days> globally and leaves it unchanged if unsupported.'
+        '  - npm: requires npm >= 11 for min-release-age; older versions skip this setting with a warning.'
         ''
         '  - pnpm: sets save-exact=true globally.'
         '  - pnpm: tries minimumReleaseAge=<minutes> globally and leaves it unchanged if unsupported.'
@@ -454,6 +454,31 @@ function Invoke-YarnClassic {
     Apply-YarnGlobalSetting -Key 'save-prefix' -Value ''
 }
 
+function Get-NpmVersionInfo {
+    try {
+        $versionOutput = (& npm --version 2>$null | Select-Object -First 1)
+    } catch {
+        return $null
+    }
+
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($versionOutput)) {
+        return $null
+    }
+
+    $versionString = $versionOutput.Trim()
+    $majorString = $versionString.Split('.')[0]
+
+    $major = 0
+    if (-not [int]::TryParse($majorString, [ref]$major)) {
+        return $null
+    }
+
+    return [PSCustomObject]@{
+        Version = $versionString
+        Major   = $major
+    }
+}
+
 function Invoke-NpmDefaults {
     if (-not (Test-CommandAvailable -Name 'npm')) {
         Skip-Message 'npm not installed'
@@ -463,6 +488,17 @@ function Invoke-NpmDefaults {
     Apply-GlobalSetting -Manager 'npm' -Key 'ignore-scripts' -Value 'true'
     Apply-GlobalSetting -Manager 'npm' -Key 'save-exact' -Value 'true'
     Apply-GlobalSetting -Manager 'npm' -Key 'provenance' -Value 'true'
+
+    $npmVersionInfo = Get-NpmVersionInfo
+    if ($null -eq $npmVersionInfo) {
+        Write-WarnMessage 'could not detect npm version; min-release-age requires npm >= 11; skipping'
+        return
+    }
+
+    if ($npmVersionInfo.Major -lt 11) {
+        Write-WarnMessage "npm $($npmVersionInfo.Version) detected; min-release-age requires npm >= 11; skipping. Upgrade with: npm install -g npm@latest"
+        return
+    }
 
     Ensure-MinReleaseAgeDays
     [void](Probe-GlobalSetting `
